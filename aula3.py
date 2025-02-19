@@ -19,9 +19,8 @@ computerchoice=random.choice("123")
 computer=int(computerchoice)
 
 print("")
-print("You chose " + str(RPS(player)).replace("RPS.","").title() + ".")
-print("Python chose " + str(RPS(computer)).replace("RPS.","").title() + ".")
-print("")
+print("You chjjgj hose " + str(RPS(player)).replace("RPS.","").title() + ".")
+
 
 if player==1 and computer==3:
     print("🎉 You win!")
