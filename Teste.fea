@@ -1,0 +1,17 @@
+[Features]
+Header = "Name	Dist(m)	Size(m)	Type	Observations"
+EW_1 = "0,000000	0,000000	Ld"
+PS_1 = "0,700000	0,000000	None"
+PS_2 = "5,000000	0,000000	None"
+PS_3 = "9,400000	0,000000	None"
+W_1 = "11,000000	0,000000	None"
+PS_4 = "16,000000	0,000000	None"
+EW_2 = "17,270000	0,000000	Rd"
+
+[Sensors]
+Header = "Name	Dist(m)	Type	Sections	WaveGW	SensGW	WaveT	SensT	Serial"
+E_1 = "16,47"
+E_2 = "16,67"
+
+[Normalize]
+Value = 0,000000

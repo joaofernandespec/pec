@@ -1,0 +1,4 @@
+Neste momento já fiz um código capaz de:
+	Ler ficheiros .nano
+	Ler ficheiros .fea
+	Gerar um gráfico com sinal sonoro
