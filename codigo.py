@@ -38,6 +38,9 @@ def ler_nano(ficheiro):
             x_values.append(float(valores[0]))
         y_values.append(float(valores[1]))
 
+    if dicionario_detalhes["Direction"]=="Left": # Se o sinal for emitido para a esquerda temos de inverter o gráfico
+        x_values.reverse()
+
     return x_values,dicionario_detalhes # Valores do 2ºCanal(y) não são necessários
 
 
@@ -61,7 +64,7 @@ def grafico(amplitude,dados_fea):
     periodo=5e-7
     velocidade=3200  # Velocidade do som (m/s) no material
     distancia=velocidade*periodo*x*0.5 # Converter índices para distâncias
-    fig, ax = plt.subplots(figsize=(12,10))
+    fig,ax=plt.subplots(figsize=(12,10))
 
     # Plot
     plt.plot(distancia,amplitude)
@@ -110,21 +113,41 @@ def ler_fea(ficheiro):
         "B": "Brace",
         "D": "Defect",
         "I": "Indication",
-        "V": "Valves"
+        "V": "Valves",
+        "E": "Sensor"
+
     }
 
-    # Abrir e ler o ficheiro texto
+    # Abrir e ler o ficheiro .fea para encontrar anomalias
     file=open(ficheiro,"r")
     y=file.read()
 
     posicao=y.find("\"")   # Encontrar a posicao da primeira "
     posicao=y.find("\"",posicao+1) # Encontrar a posicao da segunda "
     y=y[posicao+2:] # Eliminar Header
-    y=y.split("\n")
-    posicao=y.index("")
+    y=y.split("\n") # Separar por linhas
+    posicao=y.index("") # Indicar posicao da linha vazai
     y=y[0:posicao] # Apagar tudo exceto os dados - Não vai ser necessário
+   
+    file.close() # Fechar ficheiro .fea
+
+    # Abrir e ler o ficheiro .fea para encontrar posicao do sensor
+    file=open(ficheiro,"r")
+    z=file.read()
+
+    posicao_sensor=z.find("[Sensors]") # Encontrar a posição de "[Sensores]"
+    posicao_sensor=z.find("_",posicao_sensor) # Encontrar _ de [Sensors] para a frente
+    z=z[posicao_sensor-1:]
+    z=z.split("\n") # Separar por linhas
+    posicao_=z.index("") # Indicar posicao da linha vazia
+    z=z[0:posicao_] # Apagar tudo exceto os dados - Não vai ser necessário
+
+    file.close() # Fechar ficheiro .fea
+
+
 
     result=[] # Incializar lista que irá ser retornada
+    sensores=[] # Inicializar lista que tens posicao dos sensores
     
     # Manipular strings
     for item in y:
@@ -138,9 +161,23 @@ def ler_fea(ficheiro):
             key=name[0:posicao_]
             tipo_anomalia=dicionario_anomalias[key] # Traduz key-valor
             name=tipo_anomalia
-        result.append((name, float(first_value))) # Anexar ao result que irá ser retornado
+            result.append((name, float(first_value))) # Anexar ao result que irá ser retornado
+    
+    for item in z:
+        name, values=item.split(" = ")
+        first_value=values.split("\t")[0].replace('"', '').replace(',', '.')
 
-    return result
+        if "_" in name: # Esta condição, em principio, vai se verificar sempre - Medida contra possíveis erros
+            posicao_=name.find("_") # Encontrar _ que separa tipo de defeito e nº daquele tipo de defeito
+            
+            # Trabalhar string
+            key=name[0:posicao_]
+            tipo_anomalia=dicionario_anomalias[key] # Traduz key-valor
+            name=tipo_anomalia
+            sensores.append((name, float(first_value))) # Anexar ao result que irá ser retornado
+
+
+    return result,sensores
 
 
 def grafico_fft_anomalias(sinal,anomalias):
@@ -178,7 +215,32 @@ def grafico_fft_anomalias(sinal,anomalias):
     #return(frequencias,magnitude)
 
 
-    def tracar_defeitos(dados_fea):
+    def tracar_defeitos(defeitos):
+        '''
+        Função para traçar defeitos nos respetivos locais
+
+        @param: str dados_fea - tuple constituida por par defeito-local
+        @return: Plot gráfico dos locais das anomalias 
+        '''
+        
+        anomalias=[] # Inicializar lista de defeitos
+        locais=[] # Inicializar lista de locais referentes aos defeitos
+        
+        # Associar valores às respetivas listas
+        for i in range(0,len(defeitos)):
+            anomalias.append(defeitos[i][0])
+            #locais.append(int(defeitos[i][1])+16.47) # Teste Local
+            locais.append(int(defeitos[i][1]))
+        
+        # tempo=numpy.array(locais)/(3200*0.5)
+
+        # for i in range(0,len(locais)):
+        #     ax1.axvline(x=tempo[i], color="r", linewidth="1.5")
+        
+        for i in range(0,len(locais)):
+            ax1.axvline(x=locais[i], color="r", linewidth="1.5")
+    
+    def tracar_sensores(sensores):
         '''
         Função para traçar defeitos nos respetivos locais
 
@@ -190,10 +252,10 @@ def grafico_fft_anomalias(sinal,anomalias):
         locais=[] # Inicializar lista de locais referentes aos defeitos
         
         # Associar valores às respetivas listas
-        for i in range(0,len(dados_fea)):
-            defeitos.append(dados_fea[i][0])
-            #locais.append(int(dados_fea[i][1])+16.47)
-            locais.append(int(dados_fea[i][1]))
+        for i in range(0,len(sensores)):
+            defeitos.append(sensores[i][0])
+            #locais.append(int(sensores[i][1])+16.47) # Teste Local
+            locais.append(int(sensores[i][1]))
         
         # tempo=numpy.array(locais)/(3200*0.5)
 
@@ -201,9 +263,10 @@ def grafico_fft_anomalias(sinal,anomalias):
         #     ax1.axvline(x=tempo[i], color="r", linewidth="1.5")
         
         for i in range(0,len(locais)):
-            ax1.axvline(x=locais[i], color="r", linewidth="1.5")
+            ax1.axvline(x=locais[i], color="b", linewidth="1.5")
     
     tracar_defeitos(anomalias)
+    tracar_sensores(sensores)
 
     # Eixos
     ax1.set_xlabel("Time (s)")
@@ -281,8 +344,8 @@ def calcular_snr(sinal):
 
 
 
-sinal,y=ler_nano("Teste200.nano")
-anomalias=ler_fea("Teste200.fea")
+sinal,dicionario=ler_nano("Teste2.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
+anomalias,sensores=ler_fea("Teste.fea")
 grafico_fft_anomalias(sinal,anomalias)
 grafico(sinal,anomalias)
 sinal_filtrado=butterworth(sinal)
