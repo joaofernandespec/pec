@@ -147,7 +147,6 @@ def ler_fea(ficheiro):
     file.close() # Fechar ficheiro .fea
 
 
-
     result=[] # Incializar lista que irá ser retornada
     sensores=[] # Inicializar lista que tens posicao dos sensores
     
@@ -177,7 +176,6 @@ def ler_fea(ficheiro):
             tipo_anomalia=dicionario_anomalias[key] # Traduz key-valor
             name=tipo_anomalia
             sensores.append((name, float(first_value))) # Anexar ao result que irá ser retornado
-
 
     return result,sensores
 
@@ -218,68 +216,47 @@ def grafico_fft_anomalias(sinal,anomalias,sensores):
     #return(frequencias,magnitude)
 
 
-    def tracar_defeitos(defeitos):
+    def tracar_defeitos(defeitos,mot):
         '''
         Função para traçar defeitos nos respetivos locais
 
         @param: str dados_fea - tuple constituida por par defeito-local
         @return: Plot gráfico dos locais das anomalias 
         '''
-        
+
         anomalias=[] # Inicializar lista de defeitos
-        locais=[] # Inicializar lista de locais referentes aos defeitos
+        locais_anomalias=[] # Inicializar lista de locais_anomalias referentes as anomalias
+        locais_sensores=[]
         
         # Associar valores às respetivas listas
         for i in range(0,len(defeitos)):
             anomalias.append(defeitos[i][0])
-            locais.append(float(defeitos[i][1])) # Teste Local
-            #locais.append(int(defeitos[i][1])+0.9)
+            locais_anomalias.append(float(defeitos[i][1])) # Teste Local
         
-        # tempo=numpy.array(locais)/(3200*0.5)
+        for i in range(0,len(mot)):
+            locais_sensores.append(float(mot[i][1]))
+            print(locais_sensores[i])
+   
 
-        # for i in range(0,len(locais)):
+        # tempo=numpy.array(locais_anomalias)/(3200*0.5)
+
+        # for i in range(0,len(locais_anomalias)):
         #     ax1.axvline(x=tempo[i], color="r", linewidth="1.5")
         
-        for i in range(0,len(locais)):
-            ax1.axvline(x=locais[i], color="r", linewidth="1.5")
+        for i in range(0,len(locais_anomalias)):
+            ax1.axvline(x=(abs(locais_anomalias[i]-locais_sensores[0])), color="r", linewidth="1.5")
     
-    def tracar_sensores(sensores):
-        '''
-        Função para traçar sensores nos respetivos locais
-
-        @param: str dados_fea - tuple constituida por par defeito-local
-        @return: Plot gráfico dos locais dos sensores 
-        '''
-        
-        nome=[] # Inicializar lista de sensores
-        locais=[] # Inicializar lista de locais referentes aos sensores
-        
-        # Associar valores às respetivas listas
-        for i in range(0,len(sensores)):
-            nome.append(sensores[i][0])
-            #locais.append(int(sensores[i][1])+16.47) # Teste Local
-            locais.append(float(sensores[i][1]))
-        
-        # tempo=numpy.array(locais)/(3200*0.5)
-
-        # for i in range(0,len(locais)):
-        #     ax1.axvline(x=tempo[i], color="r", linewidth="1.5")
-        
-        for i in range(0,len(locais)):
-            ax1.axvline(x=locais[i], color="black", linewidth="1.5")
-    
-    tracar_defeitos(anomalias)
-    #tracar_sensores(sensores)
+    tracar_defeitos(anomalias,sensores)
 
     # Eixos
     ax1.set_xlabel("Time (s)")
     ax2.set_xlabel("Frequency (Hz)")
     ax1.set_ylabel("Amplitude")
-    #ax2.set_ylabel("PSD (V²/Hz)")
     ax2.set_ylabel("Amplitude (Normalizada)")
     ax1.grid()
     ax2.grid()
     #ax1.set_xlim(0,t[-1])
+    #ax2.set_ylabel("PSD (V²/Hz)")
     ax1.set_xlim(0,distancia[-1])
     ax2.set_xlim(0,1e6)
     plt.show()
@@ -347,9 +324,9 @@ def calcular_snr(sinal):
 
 
 
-sinal,dicionario=ler_nano("Teste200.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
-anomalias,sensores=ler_fea("Teste200.fea")
-grafico_fft_anomalias(sinal,anomalias,sensores)
+sinal,dicionario=ler_nano("Teste300.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
+anomalias,mot=ler_fea("Teste300.fea")
+grafico_fft_anomalias(sinal,anomalias,mot)
 
 #grafico(sinal,anomalias)
 #sinal_filtrado=butterworth(sinal)
