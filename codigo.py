@@ -324,8 +324,8 @@ def calcular_snr(sinal):
 
 
 
-sinal,dicionario=ler_nano("Teste300.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
-anomalias,mot=ler_fea("Teste300.fea")
+sinal,dicionario=ler_nano("Teste200.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
+anomalias,mot=ler_fea("Teste200.fea")
 grafico_fft_anomalias(sinal,anomalias,mot)
 
 #grafico(sinal,anomalias)
