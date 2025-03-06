@@ -51,7 +51,6 @@ def grafico(amplitude,dados_fea):
     Cria um gráfico onde X=Distância Percorrida pelo som e Y=Amplitude de Sinal. Traça, também, os locais das anomalias
     
     @param amplitude: Lista com os valores da amplitude (V)
-    @param frequencia: Frequência do sinal (Hz)
     @return: tuple - Gráfico MATplotLib
     """
     # Cálculo do período e distância
@@ -180,12 +179,14 @@ def ler_fea(ficheiro):
     return result,sensores
 
 
-def grafico_fft_anomalias(sinal,anomalias,sensores):
+def grafico_fft_anomalias(sinal,anomalias,sensores,dicionario):
     '''
     Função para traçar espectro do domínio temporal e das frequências
 
     @param: list sinal - lista com valores de amplitude lidos por MOT
     @param: lista anomalias - lista com locais das anomalias
+    @param: lista sensores - lista com locais dos sensores
+    @param: dicionario dicionario - dicionario com as caracteristicas do sinal
 
     @return: tuple - Gráficos com espectros do domínio temporal e das frequências
     '''    
@@ -200,53 +201,64 @@ def grafico_fft_anomalias(sinal,anomalias,sensores):
     fourier=numpy.fft.fft(sinal,N) # FFT
     frequencias=numpy.fft.fftfreq(N,T) # Vetor frequencias
     magnitude = numpy.abs(fourier) / max(numpy.abs(fourier)) # Normalizar
-
-    #PSD = (numpy.abs(fourier) ** 2) / (N*T) # Densidade Espectral de Potência
+    
+    #Inicialmente ia utilizar a densidade espectral de potencia para quantificar a FFT mas depois nao se tornou muito prático
+    #PSD=(numpy.abs(fourier)**2)/(N*T) # Densidade Espectral de Potência
     #L=numpy.arange(0,numpy.floor(N/2),dtype='int') # So queremos metade do espectro
 
     # Plotar grafico
+    #plt.plot(t,sinal) # Caso queiramos colocar eixo segundo o tempo
     fig,[ax1,ax2]=plt.subplots(nrows=2,ncols=1)
     plt.sca(ax1)
-    #plt.plot(t,sinal)
     plt.plot(distancia,sinal)
-
     plt.sca(ax2)
-    #plt.plot(frequencias[L],PSD[L])
     plt.plot(frequencias,magnitude)
+    #plt.plot(frequencias[L],PSD[L])
     #return(frequencias,magnitude)
 
 
-    def tracar_defeitos(defeitos,mot):
+    def tracar_defeitos(defeitos,mot,dicionario):
         '''
         Função para traçar defeitos nos respetivos locais
 
-        @param: str dados_fea - tuple constituida por par defeito-local
+        @param: list defeitos - lista de tuples constituidas por par defeito-local
+        @param: list mot - lista de tuples constituidas por par sensor-local
+        @param: dicionario dicionario - dicionario com as caracteristicas do sinal
+
+
         @return: Plot gráfico dos locais das anomalias 
         '''
 
-        anomalias=[] # Inicializar lista de defeitos
-        locais_anomalias=[] # Inicializar lista de locais_anomalias referentes as anomalias
+        locais_anomalias_direcao_correta=[] # Inicializar lista de locais_anomalias referentes as anomalias à esquerda do sensor
+        locais_anomalias_direcao_incorreta=[] # Inicializar lista de locais_anomalias referentes as anomalias à direita do sensor
         locais_sensores=[]
         
-        # Associar valores às respetivas listas
-        for i in range(0,len(defeitos)):
-            anomalias.append(defeitos[i][0])
-            locais_anomalias.append(float(defeitos[i][1])) # Teste Local
-        
         for i in range(0,len(mot)):
-            locais_sensores.append(float(mot[i][1]))
-            print(locais_sensores[i])
-   
+            locais_sensores.append(float(mot[i][1])) # Dar .append aos locais dos sensores
+           
+        # Associar valores às respetivas listas
+        # Se o sinal for emitido para a direita e o defeito se encotrar à direita este vai ser projetado com 80% da Energia do Sinal - Cor vermelha
+        # Se o sinal for emitido para a esquerda e o defeito se encotrar à esquerda este vai ser projetado com 80% da Energia do Sinal - Cor vermelha
+        # Se o sinal for emitido numa direcao contraria à posicao do sinal entao este vai ser apenas projetado com 20% da Energia do Sinal pelo que vou marcar a uma cor diferente - Cor Laranja
 
-        # tempo=numpy.array(locais_anomalias)/(3200*0.5)
+        for i in range(0,len(defeitos)):
+            if (defeitos[i][1]>locais_sensores[0] and dicionario["Direction"]=="Right") or (defeitos[i][1]<locais_sensores[0] and dicionario["Direction"]=="Left"):
+                locais_anomalias_direcao_correta.append(float(defeitos[i][1])) # Dar .append aos locais das anomalias consoante direcao do sinal
+            else:
+                locais_anomalias_direcao_incorreta.append(float(defeitos[i][1])) # Dar .append aos locais das anomalias consoante direcao do sinal
+
+        # tempo=numpy.array(locais_anomalias)/(3200*0.5) # Caso queiramos utilizar o eixo do tempo - Mesmo raciocínio
 
         # for i in range(0,len(locais_anomalias)):
         #     ax1.axvline(x=tempo[i], color="r", linewidth="1.5")
         
-        for i in range(0,len(locais_anomalias)):
-            ax1.axvline(x=(abs(locais_anomalias[i]-locais_sensores[0])), color="r", linewidth="1.5")
+        for i in range(0,len(locais_anomalias_direcao_correta)):
+            ax1.axvline(x=(abs(locais_anomalias_direcao_correta[i]-locais_sensores[0])), color="r", linewidth="1.5") # Traçar retas verticais consoante posicao relativa ao sensor
+
+        for i in range(0,len(locais_anomalias_direcao_incorreta)):
+            ax1.axvline(x=(abs(locais_anomalias_direcao_incorreta[i]-locais_sensores[0])), color="orange", linewidth="1.5") # Traçar retas verticais consoante posicao relativa ao sensor
     
-    tracar_defeitos(anomalias,sensores)
+    tracar_defeitos(anomalias,sensores,dicionario) # Chamar função
 
     # Eixos
     ax1.set_xlabel("Time (s)")
@@ -289,6 +301,8 @@ def butterworth(sinal):
     plt.legend()
     plt.xlabel('Tempo (s)')
     plt.show()
+
+    
     return(sinal_filtrado)
 
 def calcular_snr(sinal):
@@ -309,6 +323,7 @@ def calcular_snr(sinal):
     return snr_db
 
 
+
   
 
 
@@ -324,11 +339,11 @@ def calcular_snr(sinal):
 
 
 
-sinal,dicionario=ler_nano("Teste200.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
-anomalias,mot=ler_fea("Teste200.fea")
-grafico_fft_anomalias(sinal,anomalias,mot)
+sinal,dicionario=ler_nano("Teste2.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
+anomalias,mot=ler_fea("Teste.fea")
+grafico_fft_anomalias(sinal,anomalias,mot,dicionario)
 
-#grafico(sinal,anomalias)
-#sinal_filtrado=butterworth(sinal)
+#grafico(sinal,anomalias) # Em principio não vou utilizar
+sinal_filtrado=butterworth(sinal)
 #print(f"O sinal tem um SNR de: {calcular_snr(sinal):.2f}")
 #print(f"O sinal tem um SNR de: {calcular_snr(sinal_filtrado):.2f}")
