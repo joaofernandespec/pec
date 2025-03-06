@@ -14,7 +14,7 @@ def ler_nano(ficheiro):
     ''' 
 
     # Abrir o ficheiro e ler a primeira linha (JSON)
-    file=open("Teste2.nano","r")
+    file=open(ficheiro,"r")
     y=file.readline()
     posicao=y.find("}",1)   # Encontrar a posicao da primeira chaveta "}" - Fim do JSON
     posicao=y.find("}",posicao)
@@ -37,9 +37,11 @@ def ler_nano(ficheiro):
         if abs(float(valores[0]))<1:
             x_values.append(float(valores[0]))
         y_values.append(float(valores[1]))
+   
+    # A minha ideia inicial era inverter o gráfico para comparar com a imagem do tubo mas não era prático, pelo que comentei esta seccao toda
 
-    if dicionario_detalhes["Direction"]=="Left": # Se o sinal for emitido para a esquerda temos de inverter o gráfico
-        x_values.reverse()
+    # if dicionario_detalhes["Direction"]=="Left": # Se o sinal for emitido para a esquerda temos de inverter o gráfico
+    #     x_values.reverse()
 
     return x_values,dicionario_detalhes # Valores do 2ºCanal(y) não são necessários
 
@@ -180,12 +182,12 @@ def ler_fea(ficheiro):
     return result,sensores
 
 
-def grafico_fft_anomalias(sinal,anomalias):
+def grafico_fft_anomalias(sinal,anomalias,sensores):
     '''
     Função para traçar espectro do domínio temporal e das frequências
 
     @param: list sinal - lista com valores de amplitude lidos por MOT
-    @param: lista sinal - lista com locais das anomalias
+    @param: lista anomalias - lista com locais das anomalias
 
     @return: tuple - Gráficos com espectros do domínio temporal e das frequências
     '''    
@@ -198,10 +200,11 @@ def grafico_fft_anomalias(sinal,anomalias):
 
     # Computar FFT
     fourier=numpy.fft.fft(sinal,N) # FFT
-    PSD = (numpy.abs(fourier) ** 2) / (N*T) # Densidade Espectral de Potência
     frequencias=numpy.fft.fftfreq(N,T) # Vetor frequencias
-    L=numpy.arange(0,numpy.floor(N/2),dtype='int') # So queremos metade do espectro
     magnitude = numpy.abs(fourier) / max(numpy.abs(fourier)) # Normalizar
+
+    #PSD = (numpy.abs(fourier) ** 2) / (N*T) # Densidade Espectral de Potência
+    #L=numpy.arange(0,numpy.floor(N/2),dtype='int') # So queremos metade do espectro
 
     # Plotar grafico
     fig,[ax1,ax2]=plt.subplots(nrows=2,ncols=1)
@@ -229,8 +232,8 @@ def grafico_fft_anomalias(sinal,anomalias):
         # Associar valores às respetivas listas
         for i in range(0,len(defeitos)):
             anomalias.append(defeitos[i][0])
-            #locais.append(int(defeitos[i][1])+16.47) # Teste Local
-            locais.append(int(defeitos[i][1]))
+            locais.append(float(defeitos[i][1])) # Teste Local
+            #locais.append(int(defeitos[i][1])+0.9)
         
         # tempo=numpy.array(locais)/(3200*0.5)
 
@@ -242,20 +245,20 @@ def grafico_fft_anomalias(sinal,anomalias):
     
     def tracar_sensores(sensores):
         '''
-        Função para traçar defeitos nos respetivos locais
+        Função para traçar sensores nos respetivos locais
 
         @param: str dados_fea - tuple constituida por par defeito-local
-        @return: Plot gráfico dos locais das anomalias 
+        @return: Plot gráfico dos locais dos sensores 
         '''
         
-        defeitos=[] # Inicializar lista de defeitos
-        locais=[] # Inicializar lista de locais referentes aos defeitos
+        nome=[] # Inicializar lista de sensores
+        locais=[] # Inicializar lista de locais referentes aos sensores
         
         # Associar valores às respetivas listas
         for i in range(0,len(sensores)):
-            defeitos.append(sensores[i][0])
+            nome.append(sensores[i][0])
             #locais.append(int(sensores[i][1])+16.47) # Teste Local
-            locais.append(int(sensores[i][1]))
+            locais.append(float(sensores[i][1]))
         
         # tempo=numpy.array(locais)/(3200*0.5)
 
@@ -263,10 +266,10 @@ def grafico_fft_anomalias(sinal,anomalias):
         #     ax1.axvline(x=tempo[i], color="r", linewidth="1.5")
         
         for i in range(0,len(locais)):
-            ax1.axvline(x=locais[i], color="b", linewidth="1.5")
+            ax1.axvline(x=locais[i], color="black", linewidth="1.5")
     
     tracar_defeitos(anomalias)
-    tracar_sensores(sensores)
+    #tracar_sensores(sensores)
 
     # Eixos
     ax1.set_xlabel("Time (s)")
@@ -344,10 +347,11 @@ def calcular_snr(sinal):
 
 
 
-sinal,dicionario=ler_nano("Teste2.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
-anomalias,sensores=ler_fea("Teste.fea")
-grafico_fft_anomalias(sinal,anomalias)
-grafico(sinal,anomalias)
-sinal_filtrado=butterworth(sinal)
-print(f"O sinal tem um SNR de: {calcular_snr(sinal):.2f}")
-print(f"O sinal tem um SNR de: {calcular_snr(sinal_filtrado):.2f}")
+sinal,dicionario=ler_nano("Teste200.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
+anomalias,sensores=ler_fea("Teste200.fea")
+grafico_fft_anomalias(sinal,anomalias,sensores)
+
+#grafico(sinal,anomalias)
+#sinal_filtrado=butterworth(sinal)
+#print(f"O sinal tem um SNR de: {calcular_snr(sinal):.2f}")
+#print(f"O sinal tem um SNR de: {calcular_snr(sinal_filtrado):.2f}")
