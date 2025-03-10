@@ -1,8 +1,17 @@
 import codigo
+import numpy
 sinal,dicionario=codigo.ler_nano("Teste200.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
 
 
 def sub_bandas(sinal,detalhes_sinal):
+    '''
+    Função para definir intervalos das subbandas
+
+    @param: list sinal - lista que contem valores de amplitude do sinal
+    @param: dicionario detalhes_sinal - dicionario que contem dados do sinal
+    @return: tuple f_low,f_high - Tuple formada pelos valores dos minimos e máximos (respetivamente) de cada sub-banda
+
+    ''' 
     frequencia_central=float(detalhes_sinal["Frequency"])*1000 # Frequência central do sinal emitido
     print(frequencia_central)
 
@@ -28,7 +37,14 @@ def sub_bandas(sinal,detalhes_sinal):
 
     return f_low,f_high
 
-f_low,f_high=sub_bandas(sinal,dicionario)
+#f_low,f_high=sub_bandas(sinal,dicionario)
+
+def windows_gausinas(f_low,f_high):
+    f_central=[]
+    for i in range(0,len(f_low)):
+        f_central.append((f_low[i]+f_high[i])/2)
 
 
-
+    numpy.exp(-0.5*((x-xc)/sigma)**2)
+    w=[]   
+    w(x)=
