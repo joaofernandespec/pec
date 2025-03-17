@@ -1,4 +1,5 @@
 import json
+import math
 import matplotlib.pyplot as plt
 import numpy
 import scipy.signal as signal
@@ -324,6 +325,7 @@ def calcular_snr(sinal):
 
 
 
+
   
 
 
@@ -339,11 +341,11 @@ def calcular_snr(sinal):
 
 
 
-sinal,dicionario=ler_nano("Teste200.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
-#anomalias,mot=ler_fea("Teste200.fea")
-#grafico_fft_anomalias(sinal,anomalias,mot,dicionario)
+sinal,dicionario=ler_nano("Teste2.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
+anomalias,mot=ler_fea("Teste.fea")
+grafico_fft_anomalias(sinal,anomalias,mot,dicionario)
 
 ##grafico(sinal,anomalias) # Em principio não vou utilizar
-#sinal_filtrado=butterworth(sinal)
-##print(f"O sinal tem um SNR de: {calcular_snr(sinal):.2f}")
-##print(f"O sinal tem um SNR de: {calcular_snr(sinal_filtrado):.2f}")
+sinal_filtrado=butterworth(sinal)
+print(f"O sinal tem um SNR de: {calcular_snr(sinal):.2f}")
+print(f"O sinal tem um SNR de: {calcular_snr(sinal_filtrado):.2f}")
