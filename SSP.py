@@ -126,5 +126,6 @@ def grafico_fft_gausian(sinal,dicionario):
 
     plt.title("Sinal Recuperado após Filtro")
     plt.show()
+    return sinal_recuperado
 
 grafico_fft_gausian(x,dicionario)
