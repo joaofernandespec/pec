@@ -51,7 +51,7 @@ def grafico_fft_gausian(sinal,dicionario):
         lista_frequencias=[] # Lista que sera composta por todas as listas correspondentes as distribuicaos gausianas
         amplitudes=[] # Lista a que serão alocadas as amplitudes do sinal
 
-        fwhm=5000 # Como não sei como calcular vou utilizar 10000
+        fwhm=5000 
         sigma=fwhm/(2*math.sqrt((2*math.log(2)))) # Calculo do Sigma com base no fwhm
 
         for i in range(0,len(f_low)):
@@ -79,62 +79,14 @@ def grafico_fft_gausian(sinal,dicionario):
     cores=["red","orange","yellow","blue","green","purple"]
     p=0
 
-    # frequencias_filtradas=numpy.round(frequencias_filtradas,0)
-    # for i in range(0, len(f_low)):
-    #     mask=(frequencias_filtradas >= (f_low[i])) & (frequencias_filtradas <= (f_high[i])) # So preciso de procurar entre as frequencias limite da window gaussiana
-    #     frequencias_filtradas2=frequencias_filtradas[mask] # Filtro
-
-    # # diferenca=[] # Vetor onde vão ser alocados a diferencas entre um dado valor da frequencia e todos os pontos da window gausiana
-    # # # Vou fazer uma interpolcao entre os dois pontos mais proximos - Onde a diferenca é minima
-    # # amplitude_interpolacao=[] # Vetor com os valores da amplitude interpolada
-    # # copia_diferenca=[] # Copia do vetor diferenca
-    # # valores_minimos=[]
-    # # indices_minimos=[]
-    # # # frequencias_filtradas2= Nova lista das abcissas da transformada de fourier
-    # # # magnitude2= lista das ordenadas da transformada de fourier
-    # for i in range(0, len(f_low)):
-    #     mask=(frequencias_filtradas >= (f_low[i])) & (frequencias_filtradas <= (f_high[i])) # So preciso de procurar entre as frequencias limite da window gaussiana
-    #     frequencias_filtradas2=frequencias_filtradas[mask] # Filtro
-    #     magnitude2=magnitude[mask] # Filtro - Preciso deste vetor para comparar à interpolacao
-
-    #     if len(frequencias_filtradas2)!=0:
-    #         for i in range(0,len(frequencias_filtradas2)): # Para todos as abcissas da transformada de fourier
-    #             diferenca=[]
-    #             #contador=-1
-    #             #min1=1000
-    #             for p in range(0,len(lista_frequencias)): # Vou fazer a diferenca entre todos os pontos da window_gaussiana
-    #                 diferenca.append(frequencias_filtradas2[i]-lista_frequencias[p])
-    #             diferenca=numpy.array(diferenca)
-    #             diferenca=numpy.abs(diferenca)
-    #             copia_diferenca=diferenca.copy()
-    #             copia_diferenca=numpy.array(copia_diferenca) # Para depois saber o indice onde estava
-    #             for sublista in diferenca:
-    #                     if numpy.argsort(sublista)[0]!=0:
-    #                         indices_minimos.append(numpy.argsort(sublista)[0])
-    #             frequencias_filtradas2[i]=lista_frequencias[max(indices_minimos)]
-    #             #     contador+=1
-    #             #     sublista = numpy.array(sublista)
-    #             #     sublista = numpy.sort(numpy.abs(sublista))
-    #             #     if sublista[0]<min1:
-    #             #         min1 = float(sublista[0])  # Primeiro menor valor
-    #             #         min2 = float(sublista[1])  # Segundo menor valor
-    #             #         valores_minimos=(min1,min2)
-    #             # copia_diferenca.numpy.where(min1)
-
-
-        #         x=float(ordenadas[0])
-        #         y=float(ordenadas[1])
-        #         amplitude_interpolacao.append((x+y)/2)
-        # print(amplitude_interpolacao)
-            
-
-
     for i in range(0,N_numero_filtros):
         if p<=5:
             plt.plot(lista_frequencias[i],amplitudes[i],color=cores[p],linewidth=2)
             p+=1
         else:
             p=0
+            plt.plot(lista_frequencias[i],amplitudes[i],color=cores[p],linewidth=2)
+            p+=1
     #plt.show()
 
     def filtrar_pontos(x_values1, y_values1, x_values2, y_values2):
@@ -150,24 +102,29 @@ def grafico_fft_gausian(sinal,dicionario):
 
         return x_filtrado, y_filtrado
 
-    x,y=filtrar_pontos(frequencias_filtradas,magnitude,lista_frequencias[7],amplitudes[7])
-    plt.plot(x,y,color="brown")
-    plt.show()
+    x=[0] * N  # Cria uma lista com N elementos, todos iguais a 0
+    y=[0] * N
+    sinal_recuperado=[0] * N
+    for i in range(0,N_numero_filtros):
+        x[i],y[i]=filtrar_pontos(frequencias_filtradas,magnitude,lista_frequencias[i],amplitudes[i])
+
+        #plt.plot(x[7],y[7],color="brown")
+        plt.show()
+
+        # **Reconstruir a FFT modificada**
+        fourier_modificado = numpy.zeros_like(fourier, dtype=complex)  # Criar FFT zerada
+        fourier_modificado[mask] = fourier[mask] * (numpy.array([y[i] if f in x[i] else 0 for f, y[i] in zip(frequencias_filtradas, magnitude)]))  # Manter apenas os valores filtrados
+
+        # **Aplicar IFFT**
+        sinal_recuperado[i] = numpy.fft.ifft(fourier_modificado)
     
-    # magnitude_unica=[]
-    # lista_unica=[]
-    # frequencias_filtradas=numpy.round(frequencias_filtradas,0)
-    # for i in range(0, len(f_low)):
-    #     contador=0
-    #     mask=(frequencias_filtradas >= (f_low[i])) & (frequencias_filtradas <= (f_high[i])) # So preciso de procurar entre as frequencias limite da window gaussiana
-    #     frequencias_filtradas2=frequencias_filtradas[mask] # Filtro
+    for i in range(0,len(sinal_recuperado)):
+        sinal_recuperado[i]=sinal_recuperado[i]/numpy.max(numpy.real(sinal_recuperado[i]))
         
-    #     valores_aproximados = numpy.array([frequencias[numpy.abs(frequencias - x).argmin()] for x in frequencias_filtradas2])
+    # **Plot do sinal recuperado**
+    plt.plot(t,numpy.real(sinal_recuperado[8]))  # Apenas a parte real do sinal
 
+    plt.title("Sinal Recuperado após Filtro")
+    plt.show()
 
-    # Agora vou verificar se, para cada ponto, a frequencia esta abaixo ou acima do valor estabelecido pela window Gaussiana
-    # Preciso encontrar as abcissas mais proximas para cada valor da frequencia do meu sinal e fazer algum tipo de interpolação
-    
-    
-#lista_frequencias,amplitude=sub_bandas(dicionario)
 grafico_fft_gausian(x,dicionario)
