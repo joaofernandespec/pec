@@ -183,14 +183,14 @@ def ler_fea(ficheiro):
 
 def grafico_fft_anomalias(sinal,anomalias,sensores,dicionario):
     '''
-    Função para traçar espectro do domínio temporal e das frequências
+    Função para traçar espectro do domínio temporal e das frequências; Traça tambem as anomalias/sensores
 
     @param: list sinal - lista com valores de amplitude lidos por MOT
     @param: lista anomalias - lista com locais das anomalias
     @param: lista sensores - lista com locais dos sensores
     @param: dicionario dicionario - dicionario com as caracteristicas do sinal
 
-    @return: tuple - Gráficos com espectros do domínio temporal e das frequências
+    @return: None - Gráficos com espectros do domínio temporal e das frequências
     '''    
     # Computar sinal
     N=len(sinal)  # Número de pontos
@@ -264,7 +264,7 @@ def grafico_fft_anomalias(sinal,anomalias,sensores,dicionario):
 
     # Eixos
     ax1.set_xlabel("Distância (m)")
-    ax2.set_xlabel("Frequency (Hz)")
+    ax2.set_xlabel("Frequencia (Hz)")
     ax1.set_ylabel("Amplitude")
     ax2.set_ylabel("Amplitude (Normalizada)")
     ax1.grid()
@@ -277,9 +277,15 @@ def grafico_fft_anomalias(sinal,anomalias,sensores,dicionario):
 
 
 def butterworth(sinal):
-    N=len(sinal)
-    T=5e-7
-    fs=1/T
+    '''
+    Função para filtrar parte do sinal sonoro
+
+    @param: list sinal - Lista de valores da amplitude lidos pelo sensor MOT
+    @return: list sinal_filtrado - Sinal filtrado pelo filtro butterworth de 4a ordem
+    '''
+    N=len(sinal) # Numero de valores lidos pelo MOT
+    T=5e-7 # Periodo de amostragem
+    fs=1/T # Frequência de amostragem
     t=numpy.linspace(0, N*T, N)  # Criar vetor de tempo corretamente
 
     # Definir os limites do filtro passa-banda
@@ -288,12 +294,12 @@ def butterworth(sinal):
     ordem=4  # Ordem do filtro
 
     # Parametros filtro Butterworth
-    b,a=signal.butter(ordem, [f_low / (fs / 2), f_high / (fs / 2)], btype='band')
+    b,a=signal.butter(ordem,[f_low/(fs/2),f_high/(fs/2)],btype='band')
 
     # Aplicar o filtro
-    sinal_filtrado=signal.filtfilt(b, a, sinal)
+    sinal_filtrado=signal.filtfilt(b,a,sinal)
 
-    # Plot dos sinais
+    # Plot dol sinal
     plt.figure(figsize=(10,6))
     plt.subplot(2,1,1)
     plt.plot(t, sinal, label='Sinal com Ruído')
@@ -314,17 +320,23 @@ def calcular_snr(sinal):
     Função para avaliar SNR
 
     @param: list sinal - lista que contem valores de amplitude do sinal
-    @return: float SNR - Valor real do SNR
+    @return: float snr_db - Valor real do SNR
     ''' 
 
     S=numpy.max(numpy.abs(numpy.array(sinal)))  # Amplitude Máxima do Sinal
     N=numpy.sqrt(numpy.mean(numpy.array(sinal)**2))  # Nivel de Ruido - RMS do sinal completo
 
-    snr_db = 20 * numpy.log10(S / N)
+    snr_db=20*numpy.log10(S/N) # Calculo do SNR
 
     return snr_db
 
 def grafico_fft_gausian(sinal,dicionario):
+    '''
+    Função para realizar a transformada de fourier de cada janela gaussiana definida pela funcao (sub_bandas)
+
+    @param: list sinal - Lista que contem valores de amplitude do sinal
+    @return: dicionario dicionario - dicionario que contem informaçóes a cerca do sinal
+    ''' 
     # Computar sinal
     N=len(sinal)  # Número de pontos
     T=5e-7  # Período de amostragem
@@ -343,21 +355,22 @@ def grafico_fft_gausian(sinal,dicionario):
         frequencia_central=float(detalhes_sinal["Frequency"])*1000 # Frequência central do sinal emitido
 
         #Calculo dos Parâmetros SSP - Valores 607705
-        B_largura= 100000 # 90 da Energia # Vou definir como sendo um intervalor de 50000
+        B_largura= 100000 # 90% da Energia # Vou definir como sendo um intervalor de 50000
         frequencia_minima=frequencia_central-B_largura/2 # Frequancia minima
         frequencia_maxima=frequencia_central+B_largura/2 # Frequencia maxima
 
         # Parametros utilizados
-        Bfilt_Largura_filtro=B_largura/7
-        F_separacao_entre_filtros=Bfilt_Largura_filtro/4.5
-        N_numero_filtros=math.ceil(B_largura/F_separacao_entre_filtros)+1
+        Bfilt_Largura_filtro=B_largura/7 # Largura de Sub-banda
+        F_separacao_entre_filtros=Bfilt_Largura_filtro/4.5 # Separacao entre os filtros
+        N_numero_filtros=math.ceil(B_largura/F_separacao_entre_filtros)+1 # Numero de filtros
 
         # Intervalo de frequencias de cada Sub-banda
         f_low=[0] # Inicializar lista correspondente as frequencias minimas de cada banda
         f_high=[0] # Inicializar lista correspondente as frequencias maximas de cada banda
 
-        f_low[0]=frequencia_minima-F_separacao_entre_filtros
-        f_high[0]=f_low[0]+Bfilt_Largura_filtro
+        # Vou estabelecer o intervalo da primeira sub_banda e depois inicializar um loop para criar as restantes e anexar a f_low e f_high
+        f_low[0]=frequencia_minima-F_separacao_entre_filtros # Menor frequencia da sub-banda de menor frequencia
+        f_high[0]=f_low[0]+Bfilt_Largura_filtro # Maior frequencia da sub_banda de maior frequencia
 
         for i in range(1,N_numero_filtros+1):
             f_low.append(f_low[-1]+F_separacao_entre_filtros)   
@@ -374,27 +387,31 @@ def grafico_fft_gausian(sinal,dicionario):
         for i in range(0,len(f_low)):
             f_central.append((f_low[i]+f_high[i])/2) # Calculo da frequencia central
             freq_range=numpy.linspace(f_low[i],f_high[i],1000) # Lista com pontos espacados igualmente - Util para tracar grafico
-            lista_frequencias.append(freq_range)
+            lista_frequencias.append(freq_range) # Lista onde irão estar alocados as listas formadas pelas abcissas das sub-bandas
 
             # Calculo da Gaussiana
             gaussiana=numpy.exp(-0.5*(((numpy.array(lista_frequencias[0])-f_central[0]))/sigma)**2)
-            amplitudes.append(gaussiana)
+            amplitudes.append(gaussiana) # Lista onde irão estar alocados as listadas formadas pelas ordenadas das sub-bandas
         return lista_frequencias,amplitudes,N_numero_filtros,f_low,f_high
 
-    lista_frequencias,amplitudes,N_numero_filtros,f_low,f_high=sub_bandas(dicionario)
+    lista_frequencias,amplitudes,N_numero_filtros,f_low,f_high=sub_bandas(dicionario) # Executação da função
 
-    fourier=numpy.fft.fft(sinal,N)
-    frequencias=numpy.fft.fftfreq(N,T)
+    fourier=numpy.fft.fft(sinal,N) # Aplicada da transformada de Fourier
+    frequencias=numpy.fft.fftfreq(N,T) # Criar uma lista formada pelas frequencias (De modo a construir um gráfico)
 
-    mask = (frequencias >= 10000) & (frequencias <= 110000)
+    mask = (frequencias >= 10000) & (frequencias <= 110000) # Definição de um filtro - vamos apenas analisar uma gama de frequencias de 100000
+    
+    # Aplicar filtros à trnsformada de Fourier
     fourier_filtrado = fourier[mask]
     frequencias_filtradas = frequencias[mask]
 
+    # Definicao do vetor magnitude
     magnitude = numpy.abs(fourier_filtrado) / max(numpy.abs(fourier_filtrado))
-    plt.plot(frequencias_filtradas,magnitude)
+    plt.plot(frequencias_filtradas,magnitude) # Plot do gráfico (Ainda sem sub-bandas)
 
-    cores=["red","orange","yellow","blue","green","purple"]
-    p=0
+    # Vou agora criar um loop para tracar as sub-bandas
+    cores=["red","orange","yellow","blue","green","purple"] # Definicao de um vetor de cores
+    p=0 # Contador
 
     for i in range(0,N_numero_filtros):
         if p<=5:
@@ -404,51 +421,48 @@ def grafico_fft_gausian(sinal,dicionario):
             p=0
             plt.plot(lista_frequencias[i],amplitudes[i],color=cores[p],linewidth=2)
             p+=1
-    #plt.show()
 
-    def filtrar_pontos(x_values1, y_values1, x_values2, y_values2):
+    def filtrar_pontos(x_values1,y_values1,x_values2,y_values2):
         # Criar uma função de interpolação para y_values2 nos pontos de x_values2
-        interp_y2 = interp1d(x_values2, y_values2, kind='linear', fill_value="extrapolate")
+        interp_y2=interp1d(x_values2,y_values2,kind='linear',fill_value="extrapolate")
 
         # Interpolar os valores de y_values2 nos pontos de x_values1
-        y2_interp_values = interp_y2(x_values1)
+        y2_interp_values=interp_y2(x_values1)
 
         # Filtrar os pontos onde y1 < y2_interpolado
-        x_filtrado = [x for x, y1, y2 in zip(x_values1, y_values1, y2_interp_values) if y1 < y2]
-        y_filtrado = [y1 for y1, y2 in zip(y_values1, y2_interp_values) if y1 < y2]
+        x_filtrado=[x for x,y1,y2 in zip(x_values1,y_values1,y2_interp_values) if y1<y2]
+        y_filtrado=[y1 for y1,y2 in zip(y_values1,y2_interp_values) if y1<y2]
 
-        return x_filtrado, y_filtrado
+        return x_filtrado,y_filtrado
 
-    x=[0] * N  # Cria uma lista com N elementos, todos iguais a 0
-    y=[0] * N
-    sinal_recuperado=numpy.zeros((N_numero_filtros, N), dtype=complex)
+    x=[0]*N # Cria uma lista com N elementos, todos iguais a 0
+    y=[0]*N # Cria um lista de N elementos, todos iguais a 0
+
+    sinal_recuperado=numpy.zeros((N_numero_filtros, N),dtype=complex)
     for i in range(0,N_numero_filtros):
         x[i],y[i]=filtrar_pontos(frequencias_filtradas,magnitude,lista_frequencias[i],amplitudes[i])
-
+        # x[i],y[i]=filtrar_pontos(frequencias_filtradas,magnitude,lista_frequencias[7],amplitudes[7]) # Utilizei as duas linhas abaixo para testar se, de facto, plotava o gráfico. Bom para detetar erros
         #plt.plot(x[7],y[7],color="brown")
-        plt.show()
 
-        # **Reconstruir a FFT modificada**
+
+        # Reconstruir a FFT modificada
         fourier_modificado = numpy.zeros_like(fourier, dtype=complex)  # Criar FFT zerada
         fourier_modificado[mask] = fourier[mask] * (numpy.array([y[i] if f in x[i] else 0 for f, y[i] in zip(frequencias_filtradas, magnitude)]))  # Manter apenas os valores filtrados
 
-        # **Aplicar IFFT**
+        # Aplicar IFFT
         sinal_recuperado[i] = numpy.fft.ifft(fourier_modificado)
     
-    soma=[0]*len(sinal_recuperado)
+    # Normlizar sinais obtidos
     for i in range(0,len(sinal_recuperado)):
         sinal_recuperado[i]=sinal_recuperado[i]/numpy.max(numpy.real(sinal_recuperado[i]))
    
-    fig, axes = plt.subplots(5, 6, figsize=(18, 10))
+   # Plotar Gráfico
+    fig, axes = plt.subplots(5, 6, figsize=(20, 12))
     for i, ax in enumerate(axes.flat):
         ax.plot(t, sinal_recuperado[i])  # Desenha o gráfico do sinal recuperado[i]
-        ax.set_title(f'Gráfico {i+1}')  # Título do subgráfico
         ax.grid(True)
-        ax.set_xlabel('Tempo (t)')
-        ax.set_ylabel('Sinal Recuperado')
-    #plt.plot(t, numpy.real(sinal_recuperado[15]))
+    #plt.plot(t, numpy.real(sinal_recuperado[15])) - Apenas para testar codigo
    
-    #plt.title("Sinal Recuperado após Filtro")
     plt.show()
     return sinal_recuperado
 

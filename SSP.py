@@ -80,13 +80,14 @@ def grafico_fft_gausian(sinal,dicionario):
     p=0
 
     for i in range(0,N_numero_filtros):
-        if p<=5:
-            plt.plot(lista_frequencias[i],amplitudes[i],color=cores[p],linewidth=2)
-            p+=1
-        else:
-            p=0
-            plt.plot(lista_frequencias[i],amplitudes[i],color=cores[p],linewidth=2)
-            p+=1
+        if i==7:    
+            if p<=5:
+                plt.plot(lista_frequencias[i],amplitudes[i],color=cores[p],linewidth=2)
+                p+=1
+            else:
+                p=0
+                plt.plot(lista_frequencias[i],amplitudes[i],color=cores[p],linewidth=2)
+                p+=1
     #plt.show()
 
     def filtrar_pontos(x_values1, y_values1, x_values2, y_values2):
@@ -101,15 +102,19 @@ def grafico_fft_gausian(sinal,dicionario):
         y_filtrado = [y1 for y1, y2 in zip(y_values1, y2_interp_values) if y1 < y2]
 
         return x_filtrado, y_filtrado
+    
+    x,y=filtrar_pontos(frequencias_filtradas,magnitude,lista_frequencias[7],amplitudes[7])
+    plt.plot(x,y,color="brown")
+    plt.show()
 
-    x=[0] * N  # Cria uma lista com N elementos, todos iguais a 0
-    y=[0] * N
+    x=[0] * N_numero_filtros  # Cria uma lista com N elementos, todos iguais a 0
+    y=[0] * N_numero_filtros
     sinal_recuperado=[0] * N
     for i in range(0,N_numero_filtros):
-        x[i],y[i]=filtrar_pontos(frequencias_filtradas,magnitude,lista_frequencias[i],amplitudes[i])
+        x[i],y[i]=filtrar_pontos(frequencias_filtradas,magnitude,lista_frequencias[7],amplitudes[7])
 
         #plt.plot(x[7],y[7],color="brown")
-        plt.show()
+        #plt.show()
 
         # **Reconstruir a FFT modificada**
         fourier_modificado = numpy.zeros_like(fourier, dtype=complex)  # Criar FFT zerada
@@ -117,15 +122,22 @@ def grafico_fft_gausian(sinal,dicionario):
 
         # **Aplicar IFFT**
         sinal_recuperado[i] = numpy.fft.ifft(fourier_modificado)
-    
+    #plt.show()
+
+    #plt.plot(x[7],y[7],color="brown")
+    #plt.plot(lista_frequencias[7],amplitudes[7],color=cores[0])
+    #plt.plot(frequencias_filtradas,magnitude)
+    #plt.show()
+
+    plt.plot()
     for i in range(0,len(sinal_recuperado)):
         sinal_recuperado[i]=sinal_recuperado[i]/numpy.max(numpy.real(sinal_recuperado[i]))
         
     # **Plot do sinal recuperado**
-    plt.plot(t,numpy.real(sinal_recuperado[8]))  # Apenas a parte real do sinal
+    # plt.plot(t,numpy.real(sinal_recuperado[8]))  # Apenas a parte real do sinal
 
-    plt.title("Sinal Recuperado após Filtro")
-    plt.show()
-    return sinal_recuperado
+    # plt.title("Sinal Recuperado após Filtro")
+    # plt.show()
+    # return sinal_recuperado
 
 grafico_fft_gausian(x,dicionario)
