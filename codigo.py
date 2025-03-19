@@ -399,7 +399,7 @@ def grafico_fft_gausian(sinal,dicionario):
     fourier=numpy.fft.fft(sinal,N) # Aplicada da transformada de Fourier
     frequencias=numpy.fft.fftfreq(N,T) # Criar uma lista formada pelas frequencias (De modo a construir um gráfico)
 
-    mask = (frequencias >= 10000) & (frequencias <= 110000) # Definição de um filtro - vamos apenas analisar uma gama de frequencias de 100000
+    mask = (frequencias >= dicionario["Frequency"]*1000-50000) & (frequencias <= dicionario["Frequency"]*1000+50000) # Definição de um filtro - vamos apenas analisar uma gama de frequencias de 100000
     
     # Aplicar filtros à trnsformada de Fourier
     fourier_filtrado = fourier[mask]
@@ -421,6 +421,7 @@ def grafico_fft_gausian(sinal,dicionario):
             p=0
             plt.plot(lista_frequencias[i],amplitudes[i],color=cores[p],linewidth=2)
             p+=1
+    plt.show()
 
     def filtrar_pontos(x_values1,y_values1,x_values2,y_values2):
         # Criar uma função de interpolação para y_values2 nos pontos de x_values2
