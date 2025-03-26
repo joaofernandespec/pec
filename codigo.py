@@ -209,10 +209,10 @@ def grafico_fft_anomalias(sinal,anomalias,sensores,dicionario):
     #L=numpy.arange(0,numpy.floor(N/2),dtype='int') # So queremos metade do espectro
 
     # Plotar grafico
-    #plt.plot(t,sinal) # Caso queiramos colocar eixo segundo o tempo
+    plt.plot(t,sinal) # Caso queiramos colocar eixo segundo o tempo
     fig,[ax1,ax2]=plt.subplots(nrows=2,ncols=1)
     plt.sca(ax1)
-    plt.plot(distancia,sinal)
+    #plt.plot(distancia,sinal)
     plt.sca(ax2)
     plt.plot(frequencias,magnitude)
     #plt.plot(frequencias[L],PSD[L])
@@ -485,13 +485,13 @@ def grafico_fft_gausian(sinal,dicionario):
 
 sinal,dicionario=ler_nano("Teste2.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
 anomalias,mot=ler_fea("Teste.fea")
-grafico_fft_anomalias(sinal,anomalias,mot,dicionario)
+#grafico_fft_anomalias(sinal,anomalias,mot,dicionario)
 
 ##grafico(sinal,anomalias) # Em principio não vou utilizar
-sinal_filtrado=butterworth(sinal)
-print(f"O sinal tem um SNR de: {calcular_snr(sinal):.2f}")
-print(f"O sinal tem um SNR de: {calcular_snr(sinal_filtrado):.2f}")
-sinal_ssp=grafico_fft_gausian(sinal,dicionario)
+#sinal_filtrado=butterworth(sinal)
+#print(f"O sinal tem um SNR de: {calcular_snr(sinal):.2f}")
+#print(f"O sinal tem um SNR de: {calcular_snr(sinal_filtrado):.2f}")
+#sinal_ssp=grafico_fft_gausian(sinal,dicionario)
 
 
 #grafico_fft_anomalias(sinal_ssp,anomalias,mot,dicionario)
