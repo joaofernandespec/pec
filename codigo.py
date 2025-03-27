@@ -209,10 +209,10 @@ def grafico_fft_anomalias(sinal,anomalias,sensores,dicionario):
     #L=numpy.arange(0,numpy.floor(N/2),dtype='int') # So queremos metade do espectro
 
     # Plotar grafico
-    plt.plot(t,sinal) # Caso queiramos colocar eixo segundo o tempo
+    #plt.plot(t,sinal) # Caso queiramos colocar eixo segundo o tempo
     fig,[ax1,ax2]=plt.subplots(nrows=2,ncols=1)
     plt.sca(ax1)
-    #plt.plot(distancia,sinal)
+    plt.plot(distancia,sinal)
     plt.sca(ax2)
     plt.plot(frequencias,magnitude)
     #plt.plot(frequencias[L],PSD[L])
@@ -355,7 +355,7 @@ def grafico_fft_gausian(sinal,dicionario):
         frequencia_central=float(detalhes_sinal["Frequency"])*1000 # Frequência central do sinal emitido
 
         #Calculo dos Parâmetros SSP - Valores 607705
-        B_largura= 100000 # 90% da Energia # Vou definir como sendo um intervalor de 50000
+        B_largura= 20000 # 90% da Energia # Vou definir como sendo um intervalor de 1000000
         frequencia_minima=frequencia_central-B_largura/2 # Frequancia minima
         frequencia_maxima=frequencia_central+B_largura/2 # Frequencia maxima
 
@@ -399,7 +399,7 @@ def grafico_fft_gausian(sinal,dicionario):
     fourier=numpy.fft.fft(sinal,N) # Aplicada da transformada de Fourier
     frequencias=numpy.fft.fftfreq(N,T) # Criar uma lista formada pelas frequencias (De modo a construir um gráfico)
 
-    mask = (frequencias >= dicionario["Frequency"]*1000-50000) & (frequencias <= dicionario["Frequency"]*1000+50000) # Definição de um filtro - vamos apenas analisar uma gama de frequencias de 100000
+    mask = (frequencias >= dicionario["Frequency"]*1000-10000) & (frequencias <= dicionario["Frequency"]*1000+10000) # Definição de um filtro - vamos apenas analisar uma gama de frequencias de 100000
     
     # Aplicar filtros à trnsformada de Fourier
     fourier_filtrado = fourier[mask]
@@ -467,7 +467,36 @@ def grafico_fft_gausian(sinal,dicionario):
     plt.show()
     return sinal_recuperado
 
+def polarity_threshold_minimization(signals):
+    signals = numpy.real(signals)  # Descarta a parte imaginária
+    signals = numpy.array(signals)  # Garante que os sinais estão em formato NumPy
+    output = []  # Lista para armazenar os valores processados
 
+    for i in range(len(signals[0])):  # Iterar sobre cada coluna (tempo)
+        minimo = signals[0][i]
+        mudanca_sinal = False
+
+        for j in range(1, len(signals)):  # Iterar sobre cada linha (sinais)
+            if minimo > 0:
+                if signals[j][i] < 0:
+                    mudanca_sinal = True
+                    break  # Sair do loop ao detectar mudança de sinal
+                elif signals[j][i] < minimo:
+                    minimo = signals[j][i]
+            else:
+                if signals[j][i] > 0:
+                    mudanca_sinal = True
+                    break  # Sair do loop ao detectar mudança de sinal
+                elif signals[j][i] > minimo:
+                    minimo = signals[j][i]
+
+        if mudanca_sinal:
+            output.append(0)
+        else:
+            output.append(abs(minimo))
+    # plt.plot(output)
+    # plt.show()
+    return output
   
 
 
@@ -485,13 +514,17 @@ def grafico_fft_gausian(sinal,dicionario):
 
 sinal,dicionario=ler_nano("Teste2.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
 anomalias,mot=ler_fea("Teste.fea")
-#grafico_fft_anomalias(sinal,anomalias,mot,dicionario)
+grafico_fft_anomalias(sinal,anomalias,mot,dicionario)
+sinal_ssp=grafico_fft_gausian(sinal,dicionario)
+sinal_ssp = numpy.real(sinal_ssp)
+output=polarity_threshold_minimization(sinal_ssp)
+plt.plot(sinal)
+plt.plot(output,color="red")
+plt.show()
 
 ##grafico(sinal,anomalias) # Em principio não vou utilizar
 #sinal_filtrado=butterworth(sinal)
 #print(f"O sinal tem um SNR de: {calcular_snr(sinal):.2f}")
 #print(f"O sinal tem um SNR de: {calcular_snr(sinal_filtrado):.2f}")
-#sinal_ssp=grafico_fft_gausian(sinal,dicionario)
 
 
-#grafico_fft_anomalias(sinal_ssp,anomalias,mot,dicionario)
