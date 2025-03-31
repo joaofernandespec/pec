@@ -111,7 +111,7 @@ def grafico_fft_gausian(sinal,dicionario):
     y=[0] * N_numero_filtros
     sinal_recuperado=[0] * N
     for i in range(0,N_numero_filtros):
-        x[i],y[i]=filtrar_pontos(frequencias_filtradas,magnitude,lista_frequencias[7],amplitudes[7])
+        x[i],y[i]=filtrar_pontos(frequencias_filtradas,magnitude,lista_frequencias[i],amplitudes[i])
 
         #plt.plot(x[7],y[7],color="brown")
         #plt.show()
@@ -124,10 +124,10 @@ def grafico_fft_gausian(sinal,dicionario):
         sinal_recuperado[i] = numpy.fft.ifft(fourier_modificado)
     #plt.show()
 
-    #plt.plot(x[7],y[7],color="brown")
-    #plt.plot(lista_frequencias[7],amplitudes[7],color=cores[0])
-    #plt.plot(frequencias_filtradas,magnitude)
-    #plt.show()
+    # plt.plot(x[7],y[7],color="brown")
+    # plt.plot(lista_frequencias[7],amplitudes[7],color=cores[0])
+    # plt.plot(frequencias_filtradas,magnitude)
+    # plt.show()
 
     plt.plot()
     for i in range(0,len(sinal_recuperado)):

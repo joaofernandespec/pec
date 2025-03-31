@@ -164,10 +164,14 @@ def ler_fea(ficheiro):
             tipo_anomalia=dicionario_anomalias[key] # Traduz key-valor
             name=tipo_anomalia
             result.append((name, float(first_value))) # Anexar ao result que irá ser retornado
-    
+   
     for item in z:
+        i=0
         name, values=item.split(" = ")
         first_value=values.split("\t")[0].replace('"', '').replace(',', '.')
+
+        if name==dicionario["Tags"][i]:
+            u=i
 
         if "_" in name: # Esta condição, em principio, vai se verificar sempre - Medida contra possíveis erros
             posicao_=name.find("_") # Encontrar _ que separa tipo de defeito e nº daquele tipo de defeito
@@ -177,11 +181,11 @@ def ler_fea(ficheiro):
             tipo_anomalia=dicionario_anomalias[key] # Traduz key-valor
             name=tipo_anomalia
             sensores.append((name, float(first_value))) # Anexar ao result que irá ser retornado
+        i+=1
+    return result,sensores,u
 
-    return result,sensores
 
-
-def grafico_fft_anomalias(sinal,anomalias,sensores,dicionario):
+def grafico_fft_anomalias(sinal,anomalias,sensores,dicionario,ger):
     '''
     Função para traçar espectro do domínio temporal e das frequências; Traça tambem as anomalias/sensores
 
@@ -219,7 +223,7 @@ def grafico_fft_anomalias(sinal,anomalias,sensores,dicionario):
     #return(frequencias,magnitude)
 
 
-    def tracar_defeitos(defeitos,mot,dicionario):
+    def tracar_defeitos(defeitos,mot,dicionario,ger):
         '''
         Função para traçar defeitos nos respetivos locais
 
@@ -235,6 +239,7 @@ def grafico_fft_anomalias(sinal,anomalias,sensores,dicionario):
         locais_anomalias_direcao_incorreta=[] # Inicializar lista de locais_anomalias referentes as anomalias à direita do sensor
         locais_sensores=[]
         
+        u=0 # Vai funcionar como um Localizador
         for i in range(0,len(mot)):
             locais_sensores.append(float(mot[i][1])) # Dar .append aos locais dos sensores
            
@@ -244,7 +249,7 @@ def grafico_fft_anomalias(sinal,anomalias,sensores,dicionario):
         # Se o sinal for emitido numa direcao contraria à posicao do sinal entao este vai ser apenas projetado com 20% da Energia do Sinal pelo que vou marcar a uma cor diferente - Cor Laranja
 
         for i in range(0,len(defeitos)):
-            if (defeitos[i][1]>locais_sensores[0] and dicionario["Direction"]=="Right") or (defeitos[i][1]<locais_sensores[0] and dicionario["Direction"]=="Left"):
+            if (defeitos[i][1]>locais_sensores[ger] and dicionario["Direction"]=="Right") or (defeitos[i][1]<locais_sensores[ger] and dicionario["Direction"]=="Left"):
                 locais_anomalias_direcao_correta.append(float(defeitos[i][1])) # Dar .append aos locais das anomalias consoante direcao do sinal
             else:
                 locais_anomalias_direcao_incorreta.append(float(defeitos[i][1])) # Dar .append aos locais das anomalias consoante direcao do sinal
@@ -255,12 +260,12 @@ def grafico_fft_anomalias(sinal,anomalias,sensores,dicionario):
         #     ax1.axvline(x=tempo[i], color="r", linewidth="1.5")
         
         for i in range(0,len(locais_anomalias_direcao_correta)):
-            ax1.axvline(x=(abs(locais_anomalias_direcao_correta[i]-locais_sensores[0])), color="r", linewidth="1.5") # Traçar retas verticais consoante posicao relativa ao sensor
+            ax1.axvline(x=(abs(locais_anomalias_direcao_correta[i]-locais_sensores[ger])), color="r", linewidth="1.5") # Traçar retas verticais consoante posicao relativa ao sensor
 
         for i in range(0,len(locais_anomalias_direcao_incorreta)):
-            ax1.axvline(x=(abs(locais_anomalias_direcao_incorreta[i]-locais_sensores[0])), color="orange", linewidth="1.5") # Traçar retas verticais consoante posicao relativa ao sensor
+            ax1.axvline(x=(abs(locais_anomalias_direcao_incorreta[i]-locais_sensores[ger])), color="orange", linewidth="1.5") # Traçar retas verticais consoante posicao relativa ao sensor
     
-    tracar_defeitos(anomalias,sensores,dicionario) # Chamar função
+    tracar_defeitos(anomalias,sensores,dicionario,ger) # Chamar função
 
     # Eixos
     ax1.set_xlabel("Distância (m)")
@@ -355,12 +360,12 @@ def grafico_fft_gausian(sinal,dicionario):
         frequencia_central=float(detalhes_sinal["Frequency"])*1000 # Frequência central do sinal emitido
 
         #Calculo dos Parâmetros SSP - Valores 607705
-        B_largura= 20000 # 90% da Energia # Vou definir como sendo um intervalor de 1000000
+        B_largura= 40000 # 90% da Energia # Vou definir como sendo um intervalor de 1000000
         frequencia_minima=frequencia_central-B_largura/2 # Frequancia minima
         frequencia_maxima=frequencia_central+B_largura/2 # Frequencia maxima
 
         # Parametros utilizados
-        Bfilt_Largura_filtro=B_largura/7 # Largura de Sub-banda
+        Bfilt_Largura_filtro=B_largura/3 # Largura de Sub-banda
         F_separacao_entre_filtros=Bfilt_Largura_filtro/4.5 # Separacao entre os filtros
         N_numero_filtros=math.ceil(B_largura/F_separacao_entre_filtros)+1 # Numero de filtros
 
@@ -392,14 +397,14 @@ def grafico_fft_gausian(sinal,dicionario):
             # Calculo da Gaussiana
             gaussiana=numpy.exp(-0.5*(((numpy.array(lista_frequencias[0])-f_central[0]))/sigma)**2)
             amplitudes.append(gaussiana) # Lista onde irão estar alocados as listadas formadas pelas ordenadas das sub-bandas
-        return lista_frequencias,amplitudes,N_numero_filtros,f_low,f_high
+        return lista_frequencias,amplitudes,N_numero_filtros,f_low,f_high,B_largura
 
-    lista_frequencias,amplitudes,N_numero_filtros,f_low,f_high=sub_bandas(dicionario) # Executação da função
+    lista_frequencias,amplitudes,N_numero_filtros,f_low,f_high,B_largura=sub_bandas(dicionario) # Executação da função
 
     fourier=numpy.fft.fft(sinal,N) # Aplicada da transformada de Fourier
     frequencias=numpy.fft.fftfreq(N,T) # Criar uma lista formada pelas frequencias (De modo a construir um gráfico)
 
-    mask = (frequencias >= dicionario["Frequency"]*1000-10000) & (frequencias <= dicionario["Frequency"]*1000+10000) # Definição de um filtro - vamos apenas analisar uma gama de frequencias de 100000
+    mask = (frequencias >= dicionario["Frequency"]*1000-B_largura/2) & (frequencias <= dicionario["Frequency"]*1000+B_largura/2) # Definição de um filtro - vamos apenas analisar uma gama de frequencias de 100000
     
     # Aplicar filtros à trnsformada de Fourier
     fourier_filtrado = fourier[mask]
@@ -435,60 +440,67 @@ def grafico_fft_gausian(sinal,dicionario):
         y_filtrado=[y1 for y1,y2 in zip(y_values1,y2_interp_values) if y1<y2]
 
         return x_filtrado,y_filtrado
+    
+    # Para testar o código
+    # u,v=filtrar_pontos(frequencias_filtradas,magnitude,lista_frequencias[7],amplitudes[7])
+    # plt.plot(u,v,color="brown")
+    # plt.plot(lista_frequencias[7],amplitudes[7])
+    # plt.show()
 
-    x=[0]*N # Cria uma lista com N elementos, todos iguais a 0
-    y=[0]*N # Cria um lista de N elementos, todos iguais a 0
+    x=[0]*N_numero_filtros # Cria uma lista com N elementos, todos iguais a 0
+    y=[0]*N_numero_filtros # Cria um lista de N elementos, todos iguais a 0
 
     sinal_recuperado=numpy.zeros((N_numero_filtros, N),dtype=complex)
     for i in range(0,N_numero_filtros):
         x[i],y[i]=filtrar_pontos(frequencias_filtradas,magnitude,lista_frequencias[i],amplitudes[i])
-        # x[i],y[i]=filtrar_pontos(frequencias_filtradas,magnitude,lista_frequencias[7],amplitudes[7]) # Utilizei as duas linhas abaixo para testar se, de facto, plotava o gráfico. Bom para detetar erros
-        #plt.plot(x[7],y[7],color="brown")
 
 
         # Reconstruir a FFT modificada
-        fourier_modificado = numpy.zeros_like(fourier, dtype=complex)  # Criar FFT zerada
-        fourier_modificado[mask] = fourier[mask] * (numpy.array([y[i] if f in x[i] else 0 for f, y[i] in zip(frequencias_filtradas, magnitude)]))  # Manter apenas os valores filtrados
+        fourier_modificado=numpy.zeros_like(fourier, dtype=complex)  # Criar FFT zerada
+        fourier_modificado[mask]=fourier[mask]*(numpy.array([y[i] if f in x[i] else 0 for f, y[i] in zip(frequencias_filtradas, magnitude)]))  # Manter apenas os valores filtrados
 
         # Aplicar IFFT
-        sinal_recuperado[i] = numpy.fft.ifft(fourier_modificado)
-    
+        sinal_recuperado[i]=numpy.fft.ifft(fourier_modificado)
+
     # Normlizar sinais obtidos
     for i in range(0,len(sinal_recuperado)):
         sinal_recuperado[i]=sinal_recuperado[i]/numpy.max(numpy.real(sinal_recuperado[i]))
    
    # Plotar Gráfico
-    fig, axes = plt.subplots(5, 6, figsize=(20, 12))
-    for i, ax in enumerate(axes.flat):
-        ax.plot(t, sinal_recuperado[i])  # Desenha o gráfico do sinal recuperado[i]
-        ax.grid(True)
+    fig,axes=plt.subplots(5, 6, figsize=(20, 12))
+    for i,ax in enumerate(axes.flat):
+        if i+1>len(sinal_recuperado)-1:
+            break
+        else:
+            ax.plot(t, sinal_recuperado[i])  # Desenha o gráfico do sinal recuperado[i]
+            ax.grid(True)
     #plt.plot(t, numpy.real(sinal_recuperado[15])) - Apenas para testar codigo
    
     plt.show()
     return sinal_recuperado
 
 def polarity_threshold_minimization(signals):
-    signals = numpy.real(signals)  # Descarta a parte imaginária
-    signals = numpy.array(signals)  # Garante que os sinais estão em formato NumPy
-    output = []  # Lista para armazenar os valores processados
+    signals=numpy.real(signals)  # Descarta a parte imaginária
+    signals=numpy.array(signals)  # Garante formato correto
+    output=[]  # Lista para armazenar os valores processados
 
-    for i in range(len(signals[0])):  # Iterar sobre cada coluna (tempo)
-        minimo = signals[0][i]
-        mudanca_sinal = False
+    for i in range(len(signals[0])):  # Iterar sobre cada coluna janela gaussiana
+        minimo=signals[0][i] # Definir o minimo inicialmente como o primeiro valor de cada gaussiana
+        mudanca_sinal=False
 
-        for j in range(1, len(signals)):  # Iterar sobre cada linha (sinais)
-            if minimo > 0:
-                if signals[j][i] < 0:
-                    mudanca_sinal = True
+        for j in range(1,len(signals)):  # Iterar sobre cada sinal
+            if minimo>0:
+                if signals[j][i]<0:
+                    mudanca_sinal=True
                     break  # Sair do loop ao detectar mudança de sinal
-                elif signals[j][i] < minimo:
-                    minimo = signals[j][i]
+                elif signals[j][i]<minimo:
+                    minimo=signals[j][i]
             else:
                 if signals[j][i] > 0:
-                    mudanca_sinal = True
+                    mudanca_sinal=True
                     break  # Sair do loop ao detectar mudança de sinal
                 elif signals[j][i] > minimo:
-                    minimo = signals[j][i]
+                    minimo=signals[j][i]
 
         if mudanca_sinal:
             output.append(0)
@@ -497,7 +509,61 @@ def polarity_threshold_minimization(signals):
     # plt.plot(output)
     # plt.show()
     return output
-  
+
+def sinal_anomalias_sinal_output(sinal,sinal2,anomalias,mot,dicionario,output,output2):
+    # Codigo muito semelhante ao grafico_fft. Nao vou comentar
+    N=len(sinal)
+    N2=len(sinal2)
+    T=5e-7
+    fs=1/T
+    t=numpy.linspace(0, N*T, N)
+    t2=numpy.linspace(0, N2*T, N2)
+
+    distancia=t*3200*0.5
+    distancia2=t2*3200*0.5
+
+    fig,[ax1,ax2]=plt.subplots(nrows=2,ncols=1)
+    plt.sca(ax1)
+    plt.plot(distancia2,sinal2)
+    plt.sca(ax2)
+    plt.plot(distancia,output,color="green")
+    plt.plot(distancia2,output2,color="red")
+
+
+
+    def tracar_defeitos(defeitos,mot,dicionario):
+        locais_anomalias_direcao_correta=[]
+        locais_anomalias_direcao_incorreta=[] 
+        locais_sensores=[]
+        
+        for i in range(0,len(mot)):
+            locais_sensores.append(float(mot[i][1]))
+
+        for i in range(0,len(defeitos)):
+            if (defeitos[i][1]>locais_sensores[0] and dicionario["Direction"]=="Right") or (defeitos[i][1]<locais_sensores[0] and dicionario["Direction"]=="Left"):
+                locais_anomalias_direcao_correta.append(float(defeitos[i][1]))
+            else:
+                locais_anomalias_direcao_incorreta.append(float(defeitos[i][1]))
+
+        for i in range(0,len(locais_anomalias_direcao_correta)):
+            ax1.axvline(x=(abs(locais_anomalias_direcao_correta[i]-locais_sensores[0])), color="r", linewidth="1.5")
+
+        for i in range(0,len(locais_anomalias_direcao_incorreta)):
+            ax1.axvline(x=(abs(locais_anomalias_direcao_incorreta[i]-locais_sensores[0])), color="orange", linewidth="1.5") 
+    tracar_defeitos(anomalias,mot,dicionario)
+
+    # Eixos
+    ax1.set_xlabel("Distância (m)")
+    ax2.set_xlabel("Frequencia (Hz)")
+    ax1.set_ylabel("Amplitude")
+    ax2.set_ylabel("Amplitude (Normalizada)")
+    ax1.grid()
+    ax2.grid()
+    #ax1.set_xlim(0,t[-1])
+    #ax2.set_ylabel("PSD (V²/Hz)")
+    ax1.set_xlim(0,distancia[-1])
+    ax2.set_xlim(0,distancia[-1])
+    plt.show()
 
 
 
@@ -512,19 +578,37 @@ def polarity_threshold_minimization(signals):
 
 
 
-sinal,dicionario=ler_nano("Teste2.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
-anomalias,mot=ler_fea("Teste.fea")
-grafico_fft_anomalias(sinal,anomalias,mot,dicionario)
+# «sinal2,dicionario=ler_nano("Teste2.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
+# sinal_ssp2=grafico_fft_gausian(sinal2,dicionario)
+# sinal_ssp2=numpy.real(sinal_ssp2)
+# output2=polarity_threshold_minimization(sinal_ssp2)
+
+
+sinal,dicionario=ler_nano("Teste2l.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
+anomalias,mot,ger=ler_fea("Teste.fea")
+grafico_fft_anomalias(sinal,anomalias,mot,dicionario,ger)
 sinal_ssp=grafico_fft_gausian(sinal,dicionario)
-sinal_ssp = numpy.real(sinal_ssp)
+sinal_ssp=numpy.real(sinal_ssp)
 output=polarity_threshold_minimization(sinal_ssp)
-plt.plot(sinal)
-plt.plot(output,color="red")
+#sinal_anomalias_sinal_output(sinal,sinal2,anomalias,mot,dicionario,output,output2)
+
+
+# sinal2,dicionario=ler_nano("Teste2.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
+# sinal_ssp2=grafico_fft_gausian(sinal2,dicionario)
+# sinal_ssp2=numpy.real(sinal_ssp2)
+# output2=polarity_threshold_minimization(sinal_ssp2)
+# sinal_anomalias_sinal_output(sinal,sinal2,anomalias,mot,dicionario,output,output2)
+
+t=numpy.linspace(0, len(sinal)*5e-7, len(sinal))  # Criar vetor de tempo
+distancia=t*3200*0.5
+plt.plot(distancia,output)
 plt.show()
+
 
 ##grafico(sinal,anomalias) # Em principio não vou utilizar
 #sinal_filtrado=butterworth(sinal)
 #print(f"O sinal tem um SNR de: {calcular_snr(sinal):.2f}")
 #print(f"O sinal tem um SNR de: {calcular_snr(sinal_filtrado):.2f}")
 
+# Vou utilizar estes parametros por agora. Se depois quiser mudar apenas preciso de alterar o valor ou de B ou de Bfilt
 
