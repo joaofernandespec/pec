@@ -584,8 +584,9 @@ def sinal_anomalias_sinal_output(sinal,sinal2,anomalias,mot,dicionario,output,ou
 # output2=polarity_threshold_minimization(sinal_ssp2)
 
 
-sinal,dicionario=ler_nano("Teste2l.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
-anomalias,mot,ger=ler_fea("Teste.fea")
+sinal,dicionario=ler_nano("Teste1L.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
+print(len(sinal))
+anomalias,mot,ger=ler_fea("Teste1.fea")
 grafico_fft_anomalias(sinal,anomalias,mot,dicionario,ger)
 sinal_ssp=grafico_fft_gausian(sinal,dicionario)
 sinal_ssp=numpy.real(sinal_ssp)
@@ -593,16 +594,16 @@ output=polarity_threshold_minimization(sinal_ssp)
 #sinal_anomalias_sinal_output(sinal,sinal2,anomalias,mot,dicionario,output,output2)
 
 
-# sinal2,dicionario=ler_nano("Teste2.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
-# sinal_ssp2=grafico_fft_gausian(sinal2,dicionario)
-# sinal_ssp2=numpy.real(sinal_ssp2)
-# output2=polarity_threshold_minimization(sinal_ssp2)
-# sinal_anomalias_sinal_output(sinal,sinal2,anomalias,mot,dicionario,output,output2)
+sinal2,dicionario=ler_nano("Teste1R.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
+sinal_ssp2=grafico_fft_gausian(sinal2,dicionario)
+sinal_ssp2=numpy.real(sinal_ssp2)
+output2=polarity_threshold_minimization(sinal_ssp2)
+sinal_anomalias_sinal_output(sinal,sinal2,anomalias,mot,dicionario,output,output2)
 
-t=numpy.linspace(0, len(sinal)*5e-7, len(sinal))  # Criar vetor de tempo
-distancia=t*3200*0.5
-plt.plot(distancia,output)
-plt.show()
+# t=numpy.linspace(0, len(sinal)*5e-7, len(sinal))  # Criar vetor de tempo
+# distancia=t*3200*0.5
+# plt.plot(distancia,output)
+# plt.show()
 
 
 ##grafico(sinal,anomalias) # Em principio não vou utilizar

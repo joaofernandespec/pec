@@ -1,0 +1,29 @@
+[Features]
+Header = "Name	Dist(m)	Size(m)	Type	Observations"
+EW_3 = "0,000000	0,000000	None"
+PS_5 = "0,200000	0,000000	None"
+W_2 = "2,380000	0,000000	None"
+PS_6 = "5,440000	0,000000	None"
+PS_7 = "13,440000	0,000000	None"
+W_3 = "14,890000	0,000000	None"
+PS_8 = "20,790000	0,000000	None"
+PS_9 = "23,790000	0,000000	None"
+W_4 = "27,190000	0,000000	None"
+PS_10 = "31,290000	0,000000	None"
+PS_11 = "35,390000	0,000000	None"
+EW_4 = "35,940000	0,000000	None"
+EW_5 = "36,760966	0,000000	None"
+PS_12 = "37,040000	0,000000	None"
+EW_6 = "41,980000	0,000000	None"
+
+[Sensors]
+Header = "Name	Dist(m)	Type	Sections	WaveGW	SensGW	WaveT	SensT	Serial"
+E_1 = "0,90"
+E_2 = "1,10"
+E_3 = "33,8"
+E_4 = "34"
+E_5 = "40,57"
+E_6 = "40,77"
+
+[Normalize]
+Value = 0,000000
