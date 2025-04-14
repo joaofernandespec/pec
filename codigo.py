@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy
 import scipy.signal as signal
 from scipy.interpolate import interp1d
+from scipy.signal import find_peaks
 
 
 def ler_nano(ficheiro):
@@ -84,7 +85,7 @@ def grafico(amplitude,dados_fea):
         @return: Plot gráfico dos locais das anomalias 
         '''
         
-        defeitos=[] # Inicializar lista de defeitos
+        defeitos=[] # Inicializar lista de defeitos~
         locais=[] # Inicializar lista de locais referentes aos defeitos
         
         # Associar valores às respetivas listas
@@ -96,7 +97,27 @@ def grafico(amplitude,dados_fea):
             ax.axvline(x=locais[i], color="r", linewidth="1.5")
     
     tracar_defeitos(dados_fea)
+
+
+    def ler_curva_dac_txt(ficheiro):
+        distancias=[]
+        amplitudes=[]
+
+        with open(ficheiro, "r") as f:
+            next(f)  # Salta o cabeçalho
+            for linha in f:
+                partes = linha.strip().split("\t")
+                if len(partes) == 2:
+                    d, a = map(float, partes)
+                    distancias.append(d)
+                    amplitudes.append(a)
+        
+        return distancias, amplitudes
+    distancias,amplitudes=ler_curva_dac_txt("curva_dac.txt")
+    plt.plot(distancias,amplitudes)
+
     return plt.show()
+
 
 
 def ler_fea(ficheiro):
@@ -164,13 +185,12 @@ def ler_fea(ficheiro):
             tipo_anomalia=dicionario_anomalias[key] # Traduz key-valor
             name=tipo_anomalia
             result.append((name, float(first_value))) # Anexar ao result que irá ser retornado
-   
+    i=0
+    u=0
     for item in z:
-        i=0
         name, values=item.split(" = ")
         first_value=values.split("\t")[0].replace('"', '').replace(',', '.')
-
-        if name==dicionario["Tags"][i]:
+        if name==dicionario["Tags"][0]:
             u=i
 
         if "_" in name: # Esta condição, em principio, vai se verificar sempre - Medida contra possíveis erros
@@ -253,7 +273,9 @@ def grafico_fft_anomalias(sinal,anomalias,sensores,dicionario,ger):
                 locais_anomalias_direcao_correta.append(float(defeitos[i][1])) # Dar .append aos locais das anomalias consoante direcao do sinal
             else:
                 locais_anomalias_direcao_incorreta.append(float(defeitos[i][1])) # Dar .append aos locais das anomalias consoante direcao do sinal
-
+        for i in range(0,len(locais_sensores)):
+            if locais_sensores[i]!=locais_sensores[ger]:
+                ax1.axvline(x=(abs(locais_sensores[i]-locais_sensores[ger])), color="blue", linewidth="1.5")
         # tempo=numpy.array(locais_anomalias)/(3200*0.5) # Caso queiramos utilizar o eixo do tempo - Mesmo raciocínio
 
         # for i in range(0,len(locais_anomalias)):
@@ -264,20 +286,28 @@ def grafico_fft_anomalias(sinal,anomalias,sensores,dicionario,ger):
 
         for i in range(0,len(locais_anomalias_direcao_incorreta)):
             ax1.axvline(x=(abs(locais_anomalias_direcao_incorreta[i]-locais_sensores[ger])), color="orange", linewidth="1.5") # Traçar retas verticais consoante posicao relativa ao sensor
-    
     tracar_defeitos(anomalias,sensores,dicionario,ger) # Chamar função
 
     # Eixos
     ax1.set_xlabel("Distância (m)")
     ax2.set_xlabel("Frequencia (Hz)")
-    ax1.set_ylabel("Amplitude")
+    ax1.set_ylabel("Amplitude (Normalizada)")
     ax2.set_ylabel("Amplitude (Normalizada)")
     ax1.grid()
     ax2.grid()
+    ax1.legend()
+
     #ax1.set_xlim(0,t[-1])
     #ax2.set_ylabel("PSD (V²/Hz)")
     ax1.set_xlim(0,distancia[-1])
     ax2.set_xlim(0,1e6)
+    legenda_customizada = [
+    plt.Line2D([0], [0], color='r', linewidth=1.5, label='Anomalia (direção correta)'),
+    plt.Line2D([0], [0], color='orange', linewidth=1.5, label='Anomalia (direção incorreta)'),
+    plt.Line2D([0], [0], color='blue', linewidth=1.5, label='Outros Sensores')
+]
+
+    ax1.legend(handles=legenda_customizada)
     plt.show()
 
 
@@ -303,14 +333,19 @@ def butterworth(sinal):
 
     # Aplicar o filtro
     sinal_filtrado=signal.filtfilt(b,a,sinal)
+    sinal_filtrado=sinal_filtrado/max(abs(sinal_filtrado))
 
     # Plot dol sinal
     plt.figure(figsize=(10,6))
     plt.subplot(2,1,1)
     plt.plot(t, sinal, label='Sinal com Ruído')
+    plt.xlabel('Tempo (s)')
+    plt.ylabel('Amplitude')
     plt.legend()
     plt.subplot(2,1,2)
     plt.plot(t, sinal_filtrado, label='Sinal Filtrado', color='r')
+    plt.xlabel('Tempo(s)')
+    plt.ylabel('Amplitude Normalizada')
     plt.legend()
     plt.xlabel('Tempo (s)')
     plt.show()
@@ -318,9 +353,7 @@ def butterworth(sinal):
     
     return(sinal_filtrado)
 
-def calcular_snr(sinal):
-    #https://www.sciencedirect.com/science/article/pii/S0041624X17301622?casa_token=-OEbi_PukRsAAAAA:iNilTlVxpU-LrbMbkTFJRXcMoIPAZRhztP3EOSwyh5SK8bvA69I0tpt3PLzLgFhPibowHwYeLw
-    
+def calcular_snr(sinal):    
     '''
     Função para avaliar SNR
 
@@ -360,7 +393,7 @@ def grafico_fft_gausian(sinal,dicionario):
         frequencia_central=float(detalhes_sinal["Frequency"])*1000 # Frequência central do sinal emitido
 
         #Calculo dos Parâmetros SSP - Valores 607705
-        B_largura= 40000 # 90% da Energia # Vou definir como sendo um intervalor de 1000000
+        B_largura= 60000 # 90% da Energia # Vou definir como sendo um intervalor de 1000000
         frequencia_minima=frequencia_central-B_largura/2 # Frequancia minima
         frequencia_maxima=frequencia_central+B_largura/2 # Frequencia maxima
 
@@ -525,31 +558,179 @@ def sinal_anomalias_sinal_output(sinal,sinal2,anomalias,mot,dicionario,output,ou
     fig,[ax1,ax2]=plt.subplots(nrows=2,ncols=1)
     plt.sca(ax1)
     plt.plot(distancia2,sinal2)
+    def ler_curva_dac_txt(ficheiro):
+        distancias=[]
+        amplitudes=[]
+
+        with open(ficheiro, "r") as f:
+            next(f)  # Salta o cabeçalho
+            for linha in f:
+                partes=linha.strip().split("\t")
+                if len(partes)==2:
+                    d,a=map(float, partes)
+                    distancias.append(d)
+                    amplitudes.append(a-0.06)
+        
+        return distancias, amplitudes
+    max1=output[0]
+    for item in output:
+        if item>max1:
+            max1=item
+    for item in output2:
+        if item>max1:
+            max1=item
+    for i in range(0,len(output)):
+        output[i]=output[i]/max1
+    for i in range(0,len(output2)):
+        output2[i]=output2[i]/max1
+    
+            
+    distancias,amplitudes=ler_curva_dac_txt("curva_dac.txt")
+    amplitudes=numpy.array(amplitudes)
+    amplitudes_dir_oposta=amplitudes/4
+
+
+    distancias = numpy.array(distancias)
+
+    curva_interp = numpy.interp(distancia2, distancias, amplitudes)
+    curva_interp_oposta = numpy.interp(distancia2, distancias, amplitudes_dir_oposta)
+    indices_picos_opost, _=find_peaks(sinal2)
+    indices_picos, _=find_peaks(sinal2)
+
+    # Filtrar picos que estão acima da curva interpolada
+    picos_validos = [
+        (distancia2[i], sinal2[i])
+        for i in indices_picos
+        if sinal2[i] > curva_interp[i] and sinal2[i] > 0.05
+    ]
+    picos_validos_opost = [
+    (distancia2[i], sinal2[i])
+    for i in indices_picos_opost
+    if sinal2[i] > curva_interp_oposta[i] and sinal2[i] > 0.05 and sinal2[i]<curva_interp[i]
+    ]
+
+    def agrupar_picos_centro(picos, distancia_minima=0.2):
+        """
+        Agrupa picos próximos e retorna apenas o central de cada grupo.
+        - picos: lista de tuplas (x, y)
+        - distancia_minima: distância máxima entre picos para serem considerados no mesmo grupo
+        """
+        if not picos:
+            return []
+
+        picos_ordenados = sorted(picos, key=lambda p: p[0])
+        grupos = []
+        grupo_atual = [picos_ordenados[0]]
+
+        for pico in picos_ordenados[1:]:
+            if abs(pico[0] - grupo_atual[-1][0]) <= distancia_minima:
+                grupo_atual.append(pico)
+            else:
+                grupos.append(grupo_atual)
+                grupo_atual = [pico]
+
+        grupos.append(grupo_atual)
+        return [grupo[len(grupo)//2] for grupo in grupos]
+
+
+    picos_filtrados = agrupar_picos_centro(picos_validos, distancia_minima=0.15)
+    picos_filtrados_opost = agrupar_picos_centro(picos_validos_opost, distancia_minima=0.15)
+    x_picos, y_picos = zip(*picos_filtrados) if picos_filtrados else ([], [])
+    plt.scatter(x_picos, y_picos, color="blue", marker="x", label="Direção Correta")
+    plt.legend(loc="upper right")
+
+ 
+    x_picos_opost, y_picos_opost = zip(*picos_filtrados_opost) if picos_filtrados else ([], [])
+    plt.scatter(x_picos_opost, y_picos_opost, color="green", marker="x", label="Direção Oposta")
+    plt.legend(loc="upper right")
+
+    plt.plot(distancias,amplitudes)
+    plt.plot(distancias,amplitudes_dir_oposta,color="Black")
     plt.sca(ax2)
-    plt.plot(distancia,output,color="green")
+    plt.plot(distancia,output,color="orange")
     plt.plot(distancia2,output2,color="red")
 
+def verifica_sensor_proximo(x, distancias, ssp, limiar=0.1, margem_amp=0.05):
+    idx = numpy.argmin(numpy.abs(distancias - x))
+    amp_ref = ssp[idx]
+    for i in range(len(distancias)):
+        if abs(distancias[i] - x) < limiar and abs(ssp[i] - amp_ref) < margem_amp and i != idx:
+            return True
+    return False
 
 
-    def tracar_defeitos(defeitos,mot,dicionario):
-        locais_anomalias_direcao_correta=[]
-        locais_anomalias_direcao_incorreta=[] 
-        locais_sensores=[]
-        
-        for i in range(0,len(mot)):
-            locais_sensores.append(float(mot[i][1]))
+def classificar_defeitos(picos, curva, curva_oposta, ssp, distancias, ax, delta_x=0.1):
+    novos_defeitos = []
+    for x, y in picos:
+        idx = numpy.argmin(numpy.abs(distancias - x))
+        y_curva = curva[idx]
+        y_laranja = curva_oposta[idx]
 
-        for i in range(0,len(defeitos)):
-            if (defeitos[i][1]>locais_sensores[0] and dicionario["Direction"]=="Right") or (defeitos[i][1]<locais_sensores[0] and dicionario["Direction"]=="Left"):
-                locais_anomalias_direcao_correta.append(float(defeitos[i][1]))
+        # Ponto acima da curva oposta (laranja) → elbow
+        if y > y_laranja:
+            novos_defeitos.append(("elbow", x))
+            ax.axvline(x, color="magenta", linestyle="--", label="Elbow detectado")
+            # Nova DAC a partir desse ponto
+            ax.axhline(y, color="magenta", linestyle=":", label="Nova DAC")
+
+        # Entre linha preta (DAC) e laranja
+        elif y_laranja > y > y_curva:
+            ssp_proximos = [
+                output2[i] for i in range(len(distancias))
+                if abs(distancias[i] - x) < delta_x
+            ]
+            if any(a > 0.4 for a in ssp_proximos):
+                novos_defeitos.append(("elbow", x))
+                ax.axvline(x, color="magenta", linestyle="--", label="Elbow detectado")
+            elif any(0.2 < a <= 0.4 for a in ssp_proximos):
+                novos_defeitos.append(("weld", x))
+                ax.axvline(x, color="gray", linestyle="--", label="Weld detectado")
+            elif verifica_sensor_proximo(x, distancias, ssp):
+                novos_defeitos.append(("sensor", x))
+                ax.axvline(x, color="blue", linestyle="--", label="Sensor detectado")
             else:
-                locais_anomalias_direcao_incorreta.append(float(defeitos[i][1]))
+                novos_defeitos.append(("corrosao/suporte", x))
+                ax.axvline(x, color="black", linestyle="--", label="Corrosão/Suporte")
+        return novos_defeitos
 
-        for i in range(0,len(locais_anomalias_direcao_correta)):
-            ax1.axvline(x=(abs(locais_anomalias_direcao_correta[i]-locais_sensores[0])), color="r", linewidth="1.5")
 
-        for i in range(0,len(locais_anomalias_direcao_incorreta)):
-            ax1.axvline(x=(abs(locais_anomalias_direcao_incorreta[i]-locais_sensores[0])), color="orange", linewidth="1.5") 
+
+
+
+def tracar_defeitos(defeitos,mot,dicionario,ax1):
+    locais_anomalias_direcao_correta=[] # Inicializar lista de locais_anomalias referentes as anomalias à esquerda do sensor
+    locais_anomalias_direcao_incorreta=[] # Inicializar lista de locais_anomalias referentes as anomalias à direita do sensor
+    locais_sensores=[]
+    
+    u=0 # Vai funcionar como um Localizador
+    for i in range(0,len(mot)):
+        locais_sensores.append(float(mot[i][1])) # Dar .append aos locais dos sensores
+        
+    # Associar valores às respetivas listas
+    # Se o sinal for emitido para a direita e o defeito se encotrar à direita este vai ser projetado com 80% da Energia do Sinal - Cor vermelha
+    # Se o sinal for emitido para a esquerda e o defeito se encotrar à esquerda este vai ser projetado com 80% da Energia do Sinal - Cor vermelha
+    # Se o sinal for emitido numa direcao contraria à posicao do sinal entao este vai ser apenas projetado com 20% da Energia do Sinal pelo que vou marcar a uma cor diferente - Cor Laranja
+
+    for i in range(0,len(defeitos)):
+        if (defeitos[i][1]>locais_sensores[ger] and dicionario["Direction"]=="Right") or (defeitos[i][1]<locais_sensores[ger] and dicionario["Direction"]=="Left"):
+            locais_anomalias_direcao_correta.append(float(defeitos[i][1])) # Dar .append aos locais das anomalias consoante direcao do sinal
+        else:
+            locais_anomalias_direcao_incorreta.append(float(defeitos[i][1])) # Dar .append aos locais das anomalias consoante direcao do sinal
+    for i in range(0,len(locais_sensores)):
+        if locais_sensores[i]!=locais_sensores[ger]:
+            ax1.axvline(x=(abs(locais_sensores[i]-locais_sensores[ger])), color="blue", linewidth="1.5")
+
+    # tempo=numpy.array(locais_anomalias)/(3200*0.5) # Caso queiramos utilizar o eixo do tempo - Mesmo raciocínio
+
+    # for i in range(0,len(locais_anomalias)):
+    #     ax1.axvline(x=tempo[i], color="r", linewidth="1.5")
+    
+    for i in range(0,len(locais_anomalias_direcao_correta)):
+        ax1.axvline(x=(abs(locais_anomalias_direcao_correta[i]-locais_sensores[ger])), color="r", linewidth="1.5") # Traçar retas verticais consoante posicao relativa ao sensor
+
+    for i in range(0,len(locais_anomalias_direcao_incorreta)):
+        ax1.axvline(x=(abs(locais_anomalias_direcao_incorreta[i]-locais_sensores[ger])), color="orange", linewidth="1.5") # Traçar retas verticais consoante posicao relativa ao sensor
+
     tracar_defeitos(anomalias,mot,dicionario)
 
     # Eixos
@@ -578,13 +759,7 @@ def sinal_anomalias_sinal_output(sinal,sinal2,anomalias,mot,dicionario,output,ou
 
 
 
-# «sinal2,dicionario=ler_nano("Teste2.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
-# sinal_ssp2=grafico_fft_gausian(sinal2,dicionario)
-# sinal_ssp2=numpy.real(sinal_ssp2)
-# output2=polarity_threshold_minimization(sinal_ssp2)
-
-
-sinal,dicionario=ler_nano("Teste1L.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
+sinal,dicionario=ler_nano("Teste1R.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
 print(len(sinal))
 anomalias,mot,ger=ler_fea("Teste1.fea")
 grafico_fft_anomalias(sinal,anomalias,mot,dicionario,ger)
@@ -594,10 +769,11 @@ output=polarity_threshold_minimization(sinal_ssp)
 #sinal_anomalias_sinal_output(sinal,sinal2,anomalias,mot,dicionario,output,output2)
 
 
-sinal2,dicionario=ler_nano("Teste1R.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
+sinal2,dicionario=ler_nano("Teste1L.nano") # Na pratica não vou precisar das leituras do segundo canal (y)
 sinal_ssp2=grafico_fft_gausian(sinal2,dicionario)
 sinal_ssp2=numpy.real(sinal_ssp2)
 output2=polarity_threshold_minimization(sinal_ssp2)
+
 sinal_anomalias_sinal_output(sinal,sinal2,anomalias,mot,dicionario,output,output2)
 
 # t=numpy.linspace(0, len(sinal)*5e-7, len(sinal))  # Criar vetor de tempo
@@ -606,7 +782,7 @@ sinal_anomalias_sinal_output(sinal,sinal2,anomalias,mot,dicionario,output,output
 # plt.show()
 
 
-##grafico(sinal,anomalias) # Em principio não vou utilizar
+#grafico(sinal,anomalias) # Em principio não vou utilizar
 #sinal_filtrado=butterworth(sinal)
 #print(f"O sinal tem um SNR de: {calcular_snr(sinal):.2f}")
 #print(f"O sinal tem um SNR de: {calcular_snr(sinal_filtrado):.2f}")
